@@ -57,7 +57,7 @@ async def smart_clean_service():
     if elapsed > timedelta(days=13):
         print(f"[{get_now()}] 🤖 13 days reached (Diff: {elapsed.days} days). Cleaning...")
         try:
-            deleted = await ch.purge(limit=5000)
+            deleted = await ch.purge(limit=None)
             
             # Update the file immediately
             if update_timestamp(now):
