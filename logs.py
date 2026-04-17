@@ -99,7 +99,7 @@ def get_previous_names(user_id, current_old_name):
     return previous_names_to_return
 
 def get_now():
-    return datetime.now().strftime("%H:%M")
+    return datetime.now().strftime("%d.%m.%y %H:%M")
 
 def update_timestamp(dt):
     try:
