@@ -1,45 +1,67 @@
 <img width="1024" height="559" alt="7e4a01c5-3d1e-44d6-b650-9e57aa88a082" src="https://github.com/user-attachments/assets/1594de5b-87d6-49bc-bbbf-c6f3dc4f57f6" />
 
+Markdown
 
-# 🐧 Pingu-Logs | Discord Activity & Auto-Clean Bot
+# 🐧 Pingu-Logs | Advanced Discord Activity, Name Tracking & Auto-Clean Bot
 
-A lightweight, reliable Discord bot designed to log voice channel activity, member joins/leaves, and perform a **full channel wipe** every 13 days to stay within Discord's message limits and keep things tidy.
+A lightweight, highly reliable, and **bilingual** (English/German) Discord bot designed to keep your server logs clean, compact, and informative. 
+
+Pingu-Logs tracks voice channel activity, member joins/leaves, and features a **smart name-history system** that remembers previous usernames. To keep your log channel tidy and stay within Discord's message limits, it performs a complete automated channel wipe every 13 days.
 
 ## ✨ Features
 
-* **Voice Tracking:** Logs whenever a user joins or leaves a voice channel.
-* **Member Logs:** Tracks new members joining or leaving the server.
-* **Smart Auto-Clean:** Automatically performs a **complete purge** of the log channel every 13 days. It uses a persistent `last_clean.txt` file, so the timer doesn't reset even if the bot restarts.
-* **Manual Clear:** Admins can use `§clear` to wipe the last 1000 messages manually.
-* **Persistence:** Uses absolute path handling and disk-syncing to ensure your timestamps are never lost.
+* **🌍 Multi-Language Support:** Starts in English by default, but can be instantly switched to German via a simple command.
+* **🕵️‍♂️ Smart Name Tracking:** Logs global profile name changes and local server nickname changes.
+* **🧠 Multi-Stage Memory:** Remembers the last 3 previous names/nicknames of a user so admins always know who is who.
+* **🎧 Voice Tracking:** Logs whenever a user joins or leaves a voice channel and calculates the exact duration of their session.
+* **📱 Compact UI:** Uses a modern, one-line formatting style with emojis to keep the log channel easily readable and prevent spam.
+* **🧹 Smart Auto-Clean:** Automatically performs a complete purge of the log channel every 13 days. Uses persistent file saving so the timer doesn't reset even if the bot restarts. 
+* **💾 Full Persistence:** Safely stores language settings, voice sessions, and name histories in local JSON files.
 
----
+### Example Log Output
+```text
+📥 14:00 | Server Join: NewUser
+🕒 14:05 | ✅ Joined: NewUser ➔ General Voice
+🕒 15:30 | ❌ Left: NewUser ➔ General Voice [⏳ 1h 25m]
+📝 16:00 | [Main Profile Name] NewUser ➔ CoolUser (Previously: OldUser1, OldUser2)
 
-## 🚀 Installation
+🚀 Installation & Setup
+1. Prerequisites
 
-### 1. Prerequisites
-* Python 3.8 or higher
-* A Discord Bot Token ([Discord Developer Portal](https://discord.com/developers/applications))
+    Python 3.8 or higher
 
-### 2. Setup
+    A Discord Bot Token from the Discord Developer Portal
+
+2. Required Intents (Crucial!)
+
+In the Discord Developer Portal, navigate to your Bot settings and enable the following Privileged Gateway Intents:
+
+    Presence Intent (needed to track name updates)
+
+    Server Members Intent (needed to track joins/leaves)
+
+    Message Content Intent (needed for commands)
+
+3. Setup
+
 Clone this repository or download the files:
+Bash
 
-```bash
 git clone [https://github.com/Kartus22/pingu-logs.git](https://github.com/Kartus22/pingu-logs.git)
 cd pingu-logs
 
-3. Install Dependencies
+4. Install Dependencies
 Bash
 
 pip install discord.py
 
-4. Configuration
+5. Configuration
 
-Open logs.py and fill in your details:
+Open logs.py in your text editor and update the top configuration section:
 
-    TOKEN: Your Discord Bot Token.
+    TOKEN: Paste your Discord Bot Token here. Never share this publicly!
 
-    CHANNEL_ID: The ID of the channel where logs should be posted and cleaned.
+    CHANNEL_ID: Replace with the ID of the channel where logs should be posted and cleaned.
 
 🛠 Usage
 
@@ -48,32 +70,36 @@ Bash
 
 python3 logs.py
 
-Commands
-Command	Permission	Description
-§clear	Manage Messages	Deletes the last 1000 messages in the current channel.
-📁 File Structure
+Note: The bot will automatically create necessary .json and .txt files on its first run. You do not need to create them manually.
+💻 Commands
+Command	Required Permission	Description
+§language eng	Manage Server	Switches all bot outputs to English.
+§language ger	Manage Server	Switches all bot outputs to German.
+§clear	Manage Messages	Manually deletes the last 1000 messages in the channel.
+📁 File Structure (Auto-Generated)
 
     logs.py: The main bot script.
 
-    last_clean.txt: Stores the last cleanup timestamp (Unix/Linux LF format).
+    settings.json: Remembers your chosen language.
 
-    requirements.txt: List of necessary Python packages.
+    name_history.json: Stores the previous 3 names of server members.
 
-🛡 Permissions
+    voice_sessions.json: Temporarily stores active voice sessions to calculate duration.
 
-Make sure your bot has a role with the following permissions in your log channel:
+    last_clean.txt: Stores the last auto-cleanup timestamp.
+
+🛡 Required Discord Permissions
+
+Make sure your bot's role has the following permissions in your dedicated log channel:
 
     View Channel
 
     Send Messages
 
-    Manage Messages (Required for Purge)
+    Manage Messages (Required for Purge / Auto-Clean)
 
     Read Message History
 
-💡 Pro-Tip for Linux Users
-
-If you are editing the configuration via FTP/Filezilla, ensure your editor uses LF (Unix) line endings to prevent formatting errors with the timestamp file.
 📝 License
 
 This project is open-source and free to use (MIT License).
