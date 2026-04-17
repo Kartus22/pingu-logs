@@ -103,3 +103,6 @@ Make sure your bot's role has the following permissions in your dedicated log ch
 📝 License
 
 This project is open-source and free to use (MIT License).
+```
+<img width="1218" height="453" alt="pingubotlog" src="https://github.com/user-attachments/assets/28436748-987e-47e8-ac0b-3c66e9a6dc94" />
+
