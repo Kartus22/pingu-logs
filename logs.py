@@ -2,45 +2,146 @@ import discord
 from discord.ext import tasks
 from datetime import datetime, timedelta
 import os
+import json
 
-# --- CONFIGURATION ---
+# --- KONFIGURATION ---
 TOKEN = 'YOUR_BOT_TOKEN_HERE'
-CHANNEL_ID = 000000000000000000
+CHANNEL_ID = 1494018148704456704
 
-# Get absolute path to prevent folder confusion
+# Deine Musikbot-IDs
+IGNORE_IDS = [1481973009454727319, 1493317338320076870, 1488612071120830514, 1493194051170865152]
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TIMESTAMP_FILE = os.path.join(BASE_DIR, "last_clean.txt")
+VOICE_FILE = os.path.join(BASE_DIR, "voice_sessions.json") 
+HISTORY_FILE = os.path.join(BASE_DIR, "name_history.json")
+SETTINGS_FILE = os.path.join(BASE_DIR, "settings.json")
+
+# --- SPRACH-MODULE ---
+LANGUAGES = {
+    "ger": {
+        "main_profile": "Hauptprofilname",
+        "server_name": "Servername",
+        "previously": "Zuvor",
+        "join": "Beitritt",
+        "leave": "Verlassen",
+        "server_join": "Server-Beitritt",
+        "server_leave": "Server-Verlassen",
+        "duration": "Dauer",
+        "clean_msg": "Hausputz: {} Nachrichten entfernt.",
+        "status_msg": "Noch {}T {}Std bis zur Reinigung.",
+        "lang_set": "Sprache auf **Deutsch** umgestellt."
+    },
+    "eng": {
+        "main_profile": "Main Profile Name",
+        "server_name": "Servername",
+        "previously": "Previously",
+        "join": "Joined",
+        "leave": "Left",
+        "server_join": "Server Join",
+        "server_leave": "Server Leave",
+        "duration": "Duration",
+        "clean_msg": "Auto-Clean: {} messages removed.",
+        "status_msg": "{}d {}h remaining until clean.",
+        "lang_set": "Language set to **English**."
+    }
+}
 
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
 
+# --- HILFSFUNKTIONEN ---
+def get_lang():
+    if not os.path.exists(SETTINGS_FILE): return "eng" 
+    try:
+        with open(SETTINGS_FILE, "r") as f:
+            return json.load(f).get("lang", "eng")
+    except: return "eng"
+
+def set_lang(lang_code):
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump({"lang": lang_code}, f)
+
+def load_voice_sessions():
+    if not os.path.exists(VOICE_FILE): return {}
+    try:
+        with open(VOICE_FILE, "r") as f:
+            return json.load(f)
+    except: return {}
+
+def save_voice_sessions(data):
+    with open(VOICE_FILE, "w") as f:
+        json.dump(data, f)
+
+def load_history():
+    if not os.path.exists(HISTORY_FILE): return {}
+    try:
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except: return {}
+
+def save_history(data):
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+
+def get_previous_names(user_id, current_old_name):
+    history = load_history()
+    u_id = str(user_id)
+    known_names = history.get(u_id, [])
+    if isinstance(known_names, str): known_names = [known_names]
+    previous_names_to_return = known_names.copy()
+    if not known_names or known_names[-1] != current_old_name:
+        known_names.append(current_old_name)
+    if len(known_names) > 3: known_names = known_names[-3:]
+    history[u_id] = known_names
+    save_history(history)
+    previous_names_to_return.reverse()
+    return previous_names_to_return
+
 def get_now():
-    return datetime.now().strftime("%d.%m.%Y - %H:%M:%S")
+    return datetime.now().strftime("%H:%M")
 
 def update_timestamp(dt):
-    """Force-writes the timestamp to the file and ensures it hits the disk."""
     try:
         with open(TIMESTAMP_FILE, "w", encoding="utf-8") as f:
             f.write(dt.strftime("%Y-%m-%d %H:%M:%S"))
             f.flush()
             os.fsync(f.fileno())
-        print(f"[{get_now()}] 💾 File updated successfully to {dt.year}")
         return True
     except Exception as e:
-        print(f"[{get_now()}] ❌ CRITICAL: Could not write to file: {e}")
+        print(f"[{get_now()}] ❌ Zeitstempel-Fehler: {e}")
         return False
 
-@tasks.loop(hours=1) # Keeping 10s for your test
+def print_clean_status():
+    now = datetime.now()
+    if not os.path.exists(TIMESTAMP_FILE): return
+    with open(TIMESTAMP_FILE, "r", encoding="utf-8") as f:
+        content = f.read().strip()
+        try:
+            last_clean = datetime.strptime(content, "%Y-%m-%d %H:%M:%S")
+        except: return
+    vergangene_zeit = now - last_clean
+    if vergangene_zeit <= timedelta(days=13):
+        verbleibend = timedelta(days=13) - vergangene_zeit
+        l = LANGUAGES[get_lang()]
+        print(f"[{get_now()}] ℹ️ Status: {l['status_msg'].format(verbleibend.days, verbleibend.seconds // 3600)}")
+
+async def safe_send(channel, text):
+    try:
+        msg = await channel.send(text)
+        return msg
+    except: return None
+
+# --- AUTOMATISCHER HAUSPUTZ ---
+@tasks.loop(hours=1)
 async def smart_clean_service():
     await client.wait_until_ready()
     ch = client.get_channel(CHANNEL_ID)
     if not ch: return
-
     now = datetime.now()
     
     if not os.path.exists(TIMESTAMP_FILE):
         update_timestamp(now)
-        print(f"[{get_now()}] 📝 Created new timestamp file.")
         return
 
     with open(TIMESTAMP_FILE, "r", encoding="utf-8") as f:
@@ -48,43 +149,134 @@ async def smart_clean_service():
         try:
             last_clean = datetime.strptime(content, "%Y-%m-%d %H:%M:%S")
         except:
-            print(f"[{get_now()}] ⚠️ Formatting error in file. Resetting...")
             update_timestamp(now)
             return
 
-    elapsed = now - last_clean
+    vergangene_zeit = now - last_clean
     
-    if elapsed > timedelta(days=13):
-        print(f"[{get_now()}] 🤖 13 days reached (Diff: {elapsed.days} days). Cleaning...")
+    if vergangene_zeit > timedelta(days=13):
+        print(f"[{get_now()}] 🤖 13 Tage erreicht. Starte Reinigung...")
         try:
             deleted = await ch.purge(limit=None)
-            
-            # Update the file immediately
             if update_timestamp(now):
-                temp_msg = await ch.send(f"🤖 **Auto-Clean:** {len(deleted)} messages removed.")
-                await temp_msg.delete(delay=10)
-            else:
-                print(f"[{get_now()}] ❌ Purge done, but timestamp update FAILED!")
-                
+                temp_msg = await safe_send(ch, f"🤖 **Automatischer Hausputz:** {len(deleted)} Nachrichten entfernt.")
+                if temp_msg:
+                    try:
+                        await temp_msg.delete(delay=10)
+                    except:
+                        pass 
         except Exception as e:
-            print(f"[{get_now()}] ❌ Error during purge: {e}")
+            print(f"[{get_now()}] ❌ Fehler beim Putzen: {e}")
     else:
-        if now.minute < 30: 
-            remaining = timedelta(days=13) - elapsed
-            print(f"[{get_now()}] ℹ️ Status: {remaining.days}d {remaining.seconds // 3600}h remaining.")
+        # Hier geben wir den Status nun immer aus, da der Loop eh nur 1x pro Stunde läuft!
+        print_clean_status()
 
+# --- EVENTS ---
 @client.event
 async def on_ready():
-    print(f'=== {client.user} IS ONLINE ===')
-    print(f'Looking for file at: {TIMESTAMP_FILE}')
-    
-    if os.path.exists(TIMESTAMP_FILE):
-        with open(TIMESTAMP_FILE, "r") as f:
-            print(f"Current file content: '{f.read().strip()}'")
-
+    print(f'=== {client.user} IST ONLINE ===')
+    # Die manuelle Status-Abfrage hier wurde entfernt, da der Loop unten sofort loslegt und den Status ausgibt.
     if not smart_clean_service.is_running():
         smart_clean_service.start()
 
-# ... (Rest of your events like on_message, on_voice_state_update) ...
+@client.event
+async def on_message(message):
+    if message.author.id in IGNORE_IDS or message.author == client.user or message.guild is None:
+        return
+    
+    content = message.content.lower()
+    
+    # Sprachwahl-Befehl
+    if content.startswith('§language'):
+        if message.author.guild_permissions.manage_guild:
+            parts = content.split()
+            if len(parts) > 1 and parts[1] in ["ger", "eng"]:
+                set_lang(parts[1])
+                l = LANGUAGES[parts[1]]
+                await safe_send(message.channel, f"✅ {l['lang_set']}")
+            else:
+                await safe_send(message.channel, "❌ Syntax: `§language ger` / `§language eng`")
+        return
+
+    if content == '§clear':
+        if message.author.guild_permissions.manage_messages:
+            try:
+                deleted = await message.channel.purge(limit=1000)
+                l = LANGUAGES[get_lang()]
+                msg = await safe_send(message.channel, f'🧹 **{l["clean_msg"].format(len(deleted))}**')
+                if msg: await msg.delete(delay=10)
+            except: pass
+
+# --- LOG-EVENTS ---
+@client.event
+async def on_user_update(before, after):
+    if before.id in IGNORE_IDS: return
+    if before.name != after.name or before.display_name != after.display_name:
+        ch = client.get_channel(CHANNEL_ID)
+        if ch:
+            l = LANGUAGES[get_lang()]
+            alt = before.display_name if before.display_name else before.name
+            neu = after.display_name if after.display_name else after.name
+            prev = get_previous_names(before.id, alt)
+            info = f" ({l['previously']}: {', '.join(prev)})" if prev else ""
+            await safe_send(ch, f"📝 `{get_now()}` | **[{l['main_profile']}]** {alt} ➔ **{neu}**{info}")
+
+@client.event
+async def on_member_update(before, after):
+    if before.id in IGNORE_IDS: return
+    if before.nick != after.nick:
+        ch = client.get_channel(CHANNEL_ID)
+        if ch:
+            l = LANGUAGES[get_lang()]
+            alt = before.nick if before.nick else before.name
+            neu = after.nick if after.nick else after.name
+            prev = get_previous_names(f"{before.id}_nick", alt)
+            info = f" ({l['previously']}: {', '.join(prev)})" if prev else ""
+            await safe_send(ch, f"🏷️ `{get_now()}` | **[{l['server_name']}]** {alt} ➔ **{neu}**{info}")
+
+@client.event
+async def on_voice_state_update(member, before, after):
+    if member.id in IGNORE_IDS: return
+    ch = client.get_channel(CHANNEL_ID)
+    if not ch: return
+    l = LANGUAGES[get_lang()]
+    now = datetime.now()
+    sessions = load_voice_sessions()
+    user_id = str(member.id)
+
+    if before.channel is None and after.channel is not None:
+        sessions[user_id] = now.timestamp()
+        save_voice_sessions(sessions)
+        await safe_send(ch, f"🕒 `{get_now()}` | ✅ **{l['join']}:** {member.name} ➔ {after.channel.name}")
+
+    elif before.channel is not None and after.channel is None:
+        dauer_str = ""
+        if user_id in sessions:
+            start_ts = sessions.pop(user_id)
+            save_voice_sessions(sessions)
+            diff = now - datetime.fromtimestamp(start_ts)
+            s = int(diff.total_seconds())
+            h, r = divmod(s, 3600)
+            m, s = divmod(r, 60)
+            if h > 0: dauer_str = f" [⏳ {h}h {m}m]"
+            elif m > 0: dauer_str = f" [⏳ {m}m {s}s]"
+            else: dauer_str = f" [⏳ {s}s]"
+        await safe_send(ch, f"🕒 `{get_now()}` | ❌ **{l['leave']}:** {member.name} ➔ {before.channel.name}{dauer_str}")
+
+@client.event
+async def on_member_join(member):
+    if member.id in IGNORE_IDS: return
+    ch = client.get_channel(CHANNEL_ID)
+    if ch:
+        l = LANGUAGES[get_lang()]
+        await safe_send(ch, f"📥 `{get_now()}` | **{l['server_join']}:** {member.name}")
+
+@client.event
+async def on_member_remove(member):
+    if member.id in IGNORE_IDS: return
+    ch = client.get_channel(CHANNEL_ID)
+    if ch:
+        l = LANGUAGES[get_lang()]
+        await safe_send(ch, f"📤 `{get_now()}` | **{l['server_leave']}:** {member.name}")
 
 client.run(TOKEN)
