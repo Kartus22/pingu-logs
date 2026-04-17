@@ -20,27 +20,27 @@ SETTINGS_FILE = os.path.join(BASE_DIR, "settings.json")
 # --- SPRACH-MODULE ---
 LANGUAGES = {
     "ger": {
-        "main_profile": "Hauptprofilname",
-        "server_name": "Servername",
         "previously": "Zuvor",
         "join": "Beitritt",
         "leave": "Verlassen",
         "server_join": "Server-Beitritt",
         "server_leave": "Server-Verlassen",
-        "duration": "Dauer",
+        "change_label": "🔄 Änderung:",
+        "change_main": "Hat seinen Hauptprofilnamen geändert",
+        "change_serv": "Hat seinen Servernamen geändert",
         "clean_msg": "Hausputz: {} Nachrichten entfernt.",
         "status_msg": "Noch {}T {}Std bis zur Reinigung.",
         "lang_set": "Sprache auf **Deutsch** umgestellt."
     },
     "eng": {
-        "main_profile": "Main Profile Name",
-        "server_name": "Servername",
         "previously": "Previously",
         "join": "Joined",
         "leave": "Left",
         "server_join": "Server Join",
         "server_leave": "Server Leave",
-        "duration": "Duration",
+        "change_label": "🔄 Change:",
+        "change_main": "Changed their main profile name",
+        "change_serv": "Changed their server nickname",
         "clean_msg": "Auto-Clean: {} messages removed.",
         "status_msg": "{}d {}h remaining until clean.",
         "lang_set": "Language set to **English**."
@@ -139,43 +139,30 @@ async def smart_clean_service():
     ch = client.get_channel(CHANNEL_ID)
     if not ch: return
     now = datetime.now()
-    
     if not os.path.exists(TIMESTAMP_FILE):
         update_timestamp(now)
         return
-
     with open(TIMESTAMP_FILE, "r", encoding="utf-8") as f:
         content = f.read().strip()
-        try:
-            last_clean = datetime.strptime(content, "%Y-%m-%d %H:%M:%S")
+        try: last_clean = datetime.strptime(content, "%Y-%m-%d %H:%M:%S")
         except:
             update_timestamp(now)
             return
-
-    vergangene_zeit = now - last_clean
-    
-    if vergangene_zeit > timedelta(days=13):
-        print(f"[{get_now()}] 🤖 13 Tage erreicht. Starte Reinigung...")
+    if (now - last_clean) > timedelta(days=13):
         try:
             deleted = await ch.purge(limit=None)
             if update_timestamp(now):
                 temp_msg = await safe_send(ch, f"🤖 **Automatischer Hausputz:** {len(deleted)} Nachrichten entfernt.")
-                if temp_msg:
-                    try:
-                        await temp_msg.delete(delay=10)
-                    except:
-                        pass 
-        except Exception as e:
-            print(f"[{get_now()}] ❌ Fehler beim Putzen: {e}")
+                if temp_msg: await temp_msg.delete(delay=10)
+        except: pass
     else:
-        # Hier geben wir den Status nun immer aus, da der Loop eh nur 1x pro Stunde läuft!
         print_clean_status()
 
 # --- EVENTS ---
 @client.event
 async def on_ready():
     print(f'=== {client.user} IST ONLINE ===')
-    # Die manuelle Status-Abfrage hier wurde entfernt, da der Loop unten sofort loslegt und den Status ausgibt.
+    # Den direkten Aufruf hier haben wir entfernt, da der loop das sofort übernimmt.
     if not smart_clean_service.is_running():
         smart_clean_service.start()
 
@@ -183,10 +170,7 @@ async def on_ready():
 async def on_message(message):
     if message.author.id in IGNORE_IDS or message.author == client.user or message.guild is None:
         return
-    
     content = message.content.lower()
-    
-    # Sprachwahl-Befehl
     if content.startswith('§language'):
         if message.author.guild_permissions.manage_guild:
             parts = content.split()
@@ -194,10 +178,6 @@ async def on_message(message):
                 set_lang(parts[1])
                 l = LANGUAGES[parts[1]]
                 await safe_send(message.channel, f"✅ {l['lang_set']}")
-            else:
-                await safe_send(message.channel, "❌ Syntax: `§language ger` / `§language eng`")
-        return
-
     if content == '§clear':
         if message.author.guild_permissions.manage_messages:
             try:
@@ -219,7 +199,7 @@ async def on_user_update(before, after):
             neu = after.display_name if after.display_name else after.name
             prev = get_previous_names(before.id, alt)
             info = f" ({l['previously']}: {', '.join(prev)})" if prev else ""
-            await safe_send(ch, f"📝 `{get_now()}` | **[{l['main_profile']}]** {alt} ➔ **{neu}**{info}")
+            await safe_send(ch, f"📝 `{get_now()}` | **{l['change_label']}** {alt} ➔ **{neu}**{info} **({l['change_main']})**")
 
 @client.event
 async def on_member_update(before, after):
@@ -232,7 +212,7 @@ async def on_member_update(before, after):
             neu = after.nick if after.nick else after.name
             prev = get_previous_names(f"{before.id}_nick", alt)
             info = f" ({l['previously']}: {', '.join(prev)})" if prev else ""
-            await safe_send(ch, f"🏷️ `{get_now()}` | **[{l['server_name']}]** {alt} ➔ **{neu}**{info}")
+            await safe_send(ch, f"🏷️ `{get_now()}` | **{l['change_label']}** {alt} ➔ **{neu}**{info} **({l['change_serv']})**")
 
 @client.event
 async def on_voice_state_update(member, before, after):
@@ -258,9 +238,9 @@ async def on_voice_state_update(member, before, after):
             s = int(diff.total_seconds())
             h, r = divmod(s, 3600)
             m, s = divmod(r, 60)
-            if h > 0: dauer_str = f" [⏳ {h}h {m}m]"
-            elif m > 0: dauer_str = f" [⏳ {m}m {s}s]"
-            else: dauer_str = f" [⏳ {s}s]"
+            if h > 0: dauer_str = f" [⏱️ {h}h {m}m]"
+            elif m > 0: dauer_str = f" [⏱️ {m}m {s}s]"
+            else: dauer_str = f" [⏱️ {s}s]"
         await safe_send(ch, f"🕒 `{get_now()}` | ❌ **{l['leave']}:** {member.name} ➔ {before.channel.name}{dauer_str}")
 
 @client.event
