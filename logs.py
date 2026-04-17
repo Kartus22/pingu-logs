@@ -30,7 +30,8 @@ LANGUAGES = {
         "change_serv": "Hat seinen Servernamen geändert",
         "clean_msg": "Hausputz: {} Nachrichten entfernt.",
         "status_msg": "Noch {}T {}Std bis zur Reinigung.",
-        "lang_set": "Sprache auf **Deutsch** umgestellt."
+        "lang_set": "Sprache auf **Deutsch** umgestellt.",
+        "backup_info": "🤖 **Hausputz beendet:** Um die Übersicht zu wahren, wurden alle Nachrichten gelöscht. Die letzten 30 Log-Einträge wurden vorab gesichert und hier wiederhergestellt.\n📅 **Nächster Hausputz am: {}**"
     },
     "eng": {
         "previously": "Previously",
@@ -43,7 +44,8 @@ LANGUAGES = {
         "change_serv": "Changed their server nickname",
         "clean_msg": "Auto-Clean: {} messages removed.",
         "status_msg": "{}d {}h remaining until clean.",
-        "lang_set": "Language set to **English**."
+        "lang_set": "Language set to **English**.",
+        "backup_info": "🤖 **Clean-up finished:** Channel was cleared for readability. The last 30 log entries were backed up and restored below.\n📅 **Next clean-up on: {}**"
     }
 }
 
@@ -132,7 +134,7 @@ async def safe_send(channel, text):
         return msg
     except: return None
 
-# --- AUTOMATISCHER HAUSPUTZ ---
+# --- AUTOMATISCHER HAUSPUTZ MIT PRÄZISEM EMOJI-BACKUP ---
 @tasks.loop(hours=1)
 async def smart_clean_service():
     await client.wait_until_ready()
@@ -148,13 +150,45 @@ async def smart_clean_service():
         except:
             update_timestamp(now)
             return
+    
     if (now - last_clean) > timedelta(days=13):
+        print(f"[{get_now()}] 🤖 13 Tage erreicht. Starte Reinigung mit Emoji-Backup...")
         try:
+            backup = []
+            # Exakte Symbole für die Logs
+            log_symbols = ["📝", "🏷️", "🕒", "✅", "❌", "📥", "📤"]
+            
+            async for msg in ch.history(limit=300):
+                # Wir sichern die Nachricht, wenn sie eines der Symbole enthält
+                if any(sym in msg.content for sym in log_symbols):
+                    # Keine Befehle oder Bot-Meldungen mitsichern
+                    if not msg.content.startswith('§') and not msg.content.startswith('🤖'):
+                        backup.append(msg.content)
+                
+                if len(backup) >= 30:
+                    break
+            
+            backup.reverse()
+
+            # Kanal leeren
             deleted = await ch.purge(limit=None)
-            if update_timestamp(now):
-                temp_msg = await safe_send(ch, f"🤖 **Automatischer Hausputz:** {len(deleted)} Nachrichten entfernt.")
-                if temp_msg: await temp_msg.delete(delay=10)
-        except: pass
+            
+            # Zeitstempel auf JETZT setzen
+            update_timestamp(now)
+
+            # Wiederherstellen
+            if backup:
+                for entry in backup:
+                    await ch.send(entry)
+            
+            l = LANGUAGES[get_lang()]
+            next_clean_date = (now + timedelta(days=13)).strftime("%d.%m.%Y %H:%M")
+            await safe_send(ch, l['backup_info'].format(next_clean_date))
+            
+            print(f"[{get_now()}] ✅ Reinigung erledigt. {len(deleted)} gelöscht, {len(backup)} wiederhergestellt.")
+
+        except Exception as e:
+            print(f"[{get_now()}] ❌ Fehler beim Putzen: {e}")
     else:
         print_clean_status()
 
