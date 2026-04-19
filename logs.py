@@ -9,7 +9,7 @@ TOKEN = 'YOUR_BOT_TOKEN_HERE'
 CHANNEL_ID = 1494018148704456704
 
 # Deine Musikbot-IDs
-IGNORE_IDS = [1481973009454727319, 1493317338320076870, 1488612071120830514, 1493194051170865152]
+IGNORE_IDS = [1481973009454727319, 1493317338320076870, 1488612071120830514, 1493194051170865152, 1494823684337041499]
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TIMESTAMP_FILE = os.path.join(BASE_DIR, "last_clean.txt")
@@ -261,21 +261,30 @@ async def on_voice_state_update(member, before, after):
     if before.channel is None and after.channel is not None:
         sessions[user_id] = now.timestamp()
         save_voice_sessions(sessions)
-        await safe_send(ch, f"🕒 `{get_now()}` | ✅ **{l['join']}:** {member.name} ➔ {after.channel.name}")
+        await safe_send(ch, f"🕒 `{get_now()}` | ✅ **{l['join']}:** {member.display_name} ➔ {after.channel.name}")
 
     elif before.channel is not None and after.channel is None:
-        dauer_str = ""
+        info_str = ""
         if user_id in sessions:
             start_ts = sessions.pop(user_id)
             save_voice_sessions(sessions)
-            diff = now - datetime.fromtimestamp(start_ts)
-            s = int(diff.total_seconds())
-            h, r = divmod(s, 3600)
-            m, s = divmod(r, 60)
-            if h > 0: dauer_str = f" [⏱️ {h}h {m}m]"
-            elif m > 0: dauer_str = f" [⏱️ {m}m {s}s]"
-            else: dauer_str = f" [⏱️ {s}s]"
-        await safe_send(ch, f"🕒 `{get_now()}` | ❌ **{l['leave']}:** {member.name} ➔ {before.channel.name}{dauer_str}")
+            
+            start_dt = datetime.fromtimestamp(start_ts)
+            end_dt = datetime.now()
+            diff = end_dt - start_dt
+            
+            s_val = int(diff.total_seconds()) # Umbenannt in s_val
+            h, r = divmod(s_val, 3600)
+            m, sec = divmod(r, 60) # Umbenannt in sec
+            
+            if h > 0: dur = f"{h}h {m}m"
+            elif m > 0: dur = f"{m}m {sec}s"
+            else: dur = f"{sec}s"
+            
+            # HIER AUCH: Nur %H:%M (Stunden:Minuten)
+            info_str = f" [{start_dt.strftime('%H:%M')} - {end_dt.strftime('%H:%M')} | ⏱️ {dur}]"
+
+        await safe_send(ch, f"🕒 `{get_now()}` | ❌ **{l['leave']}:** {member.display_name} ➔ {before.channel.name}{info_str}")
 
 @client.event
 async def on_member_join(member):
@@ -283,7 +292,8 @@ async def on_member_join(member):
     ch = client.get_channel(CHANNEL_ID)
     if ch:
         l = LANGUAGES[get_lang()]
-        await safe_send(ch, f"📥 `{get_now()}` | **{l['server_join']}:** {member.name}")
+        # Hier display_name für den Server-Namen nutzen
+        await safe_send(ch, f"📥 `{get_now()}` | **{l['server_join']}:** {member.display_name}")
 
 @client.event
 async def on_member_remove(member):
@@ -291,6 +301,8 @@ async def on_member_remove(member):
     ch = client.get_channel(CHANNEL_ID)
     if ch:
         l = LANGUAGES[get_lang()]
-        await safe_send(ch, f"📤 `{get_now()}` | **{l['server_leave']}:** {member.name}")
+        # WICHTIG: Hier l['server_leave'] (oder wie dein Label für Verlassen heißt) nutzen
+        # In deinem Sprach-Modul heißt es wahrscheinlich "server_leave"
+        await safe_send(ch, f"📤 `{get_now()}` | **{l.get('server_leave', 'Verlassen')}:** {member.display_name}")
 
 client.run(TOKEN)
