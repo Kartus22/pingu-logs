@@ -45,5 +45,5 @@ cd pingu-logs
 pip install discord.py
 4. ConfigurationOpen logs.py and update the configuration section:TOKEN: Paste your Discord Bot Token here.CHANNEL_ID: The ID of the channel where logs should be posted and cleaned.💻 CommandsCommandRequired PermissionDescription§language engManage ServerSwitches all bot outputs to English.§language gerManage ServerSwitches all bot outputs to German.§clearManage MessagesManually deletes the last 1000 messages in the channel.📁 File Structure (Auto-Generated)logs.py: The main bot script.settings.json: Stores your chosen language.name_history.json: Stores the previous 3 names of server members.voice_sessions.json: Temporarily stores active voice sessions.last_clean.txt: Stores the last auto-cleanup timestamp.🛡 Required Discord PermissionsEnsure the bot's role has these permissions in the log channel:View ChannelSend MessagesManage Messages (Required for Auto-Clean)Read Message History📝 LicenseThis project is open-source and free to use (MIT License).
 ```
-<img width="1218" height="453" alt="pingubotlog" src="https://github.com/user-attachments/assets/28436748-987e-47e8-ac0b-3c66e9a6dc94" />
+<img width="1276" height="662" alt="image" src="https://github.com/user-attachments/assets/80f9461f-f81c-4292-9aa0-1dfe480aa309" />
 
