@@ -48,5 +48,5 @@ pip install discord.py
 <img width="1276" height="662" alt="image" src="https://github.com/user-attachments/assets/80f9461f-f81c-4292-9aa0-1dfe480aa309" />
 
 ## 🐧 Versions
-* **[main]([https://github.com/DEIN_NUTZERNAME/DEIN_REPO/tree/main](https://github.com/Kartus22/pingu-logs/tree/main))**: Classic version (Full house cleaning every 13 days).
-* **[circular-logs]([https://github.com/DEIN_NUTZERNAME/DEIN_REPO/tree/circular-logs](https://github.com/Kartus22/pingu-logs/tree/circular-logs))**: Modern version (Always keeps the channel at the last 30 messages).
+* **[main](https://github.com/Kartus22/pingu-logs/tree/main)**: Classic version (Full house cleaning every 13 days).
+* **[circular-logs](https://github.com/Kartus22E/pingu-logs/tree/circular-logs)**: Modern version (Always keeps the channel at the last 30 messages).
