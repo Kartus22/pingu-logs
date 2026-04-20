@@ -4,7 +4,7 @@ import os
 import json
 
 # --- KONFIGURATION ---
-TOKEN = 'TOKEN = 'YOUR_DISCORD_BOT_TOKEN_HERE' # Token bleibt wie gewünscht
+TOKEN = 'YOUR_DISCORD_BOT_TOKEN_HERE' # Token bleibt wie gewünscht
 CHANNEL_ID = 1494018148704456704
 
 # Deine Musikbot-IDs
@@ -125,7 +125,14 @@ async def safe_send(channel, text):
 # --- EVENTS ---
 @client.event
 async def on_ready():
-    print(f'=== {client.user} IST ONLINE (Radikaler 30-Limit Scan aktiv) ===')
+    # Sprache laden für die Konsolenausgabe
+    lang = get_lang()
+    if lang == "ger":
+        status_msg = "IST ONLINE (Radikaler 30-Limit Scan aktiv)"
+    else:
+        status_msg = "IS ONLINE (Radical 30-limit scan active)"
+    
+    print(f'=== {client.user} {status_msg} ===')
 
 @client.event
 async def on_message(message):
@@ -148,7 +155,9 @@ async def on_message(message):
                 l = LANGUAGES[get_lang()]
                 await safe_send(message.channel, f'🧹 **{l["clean_msg"].format(len(deleted))}**')
             except Exception as e: 
-                print(f"Fehler beim manuellen Clear: {e}")
+                # Fehlermeldung in der Konsole ebenfalls sprachabhängig
+                err_prefix = "Fehler beim manuellen Clear" if get_lang() == "ger" else "Error during manual clear"
+                print(f"{err_prefix}: {e}")
 
 # --- LOG-EVENTS ---
 @client.event
