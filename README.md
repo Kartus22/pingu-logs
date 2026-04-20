@@ -55,15 +55,14 @@ To change this limit:
 
 Open the logs.py file.
 
-Locate the safe_send function (line 126 /127).
+Locate the safe_send function (line 9).
 
 Update the number 30 in the following lines to your preferred value (e.g., 50 or 100):
 
 Python
 Example: Changing the limit to 50 messages
 ```
-if len(messages) > 50:
-    to_delete = messages[50:]
+LIMIT = 50
 ```
     
 <img width="1276" height="662" alt="image" src="https://github.com/user-attachments/assets/80f9461f-f81c-4292-9aa0-1dfe480aa309" />
