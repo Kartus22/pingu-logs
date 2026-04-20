@@ -6,6 +6,7 @@ import json
 # --- KONFIGURATION ---
 TOKEN = 'YOUR_DISCORD_BOT_TOKEN_HERE' # Token bleibt wie gewünscht
 CHANNEL_ID = 1494018148704456704
+LIMIT = 30
 
 # Deine Musikbot-IDs
 IGNORE_IDS = [1481973009454727319, 1493317338320076870, 1488612071120830514, 1493194051170865152, 1494823684337041499]
@@ -111,8 +112,8 @@ async def safe_send(channel, text):
             messages.append(message)
         
         # 3. Alles über 30 Nachrichten nacheinander löschen
-        if len(messages) > 30:
-            to_delete = messages[30:]
+        if len(messages) > LIMIT:
+            to_delete = messages[LIMIT:]
             for old_msg in to_delete:
                 await old_msg.delete()
                 
@@ -128,9 +129,9 @@ async def on_ready():
     # Sprache laden für die Konsolenausgabe
     lang = get_lang()
     if lang == "ger":
-        status_msg = "IST ONLINE (Radikaler 30-Limit Scan aktiv)"
+        status_msg = f"IST ONLINE (Radikaler {LIMIT}-Limit Scan aktiv)"
     else:
-        status_msg = "IS ONLINE (Radical 30-limit scan active)"
+        status_msg = f"IS ONLINE (Radical {LIMIT}-limit scan active)"
     
     print(f'=== {client.user} {status_msg} ===')
 
