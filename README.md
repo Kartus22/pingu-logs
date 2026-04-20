@@ -49,4 +49,4 @@ pip install discord.py
 
 ## 🐧 Versions
 * **[main](https://github.com/Kartus22/pingu-logs/tree/main)**: Classic version (Full house cleaning every 13 days).
-* **[circular-logs](https://github.com/Kartus22E/pingu-logs/tree/circular-logs)**: Modern version (Always keeps the channel at the last 30 messages).
+* **[circular-logs](https://github.com/Kartus22/pingu-logs/tree/circular-logs)**: Modern version (Always keeps the channel at the last 30 messages).
