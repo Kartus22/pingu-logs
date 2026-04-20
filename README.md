@@ -48,6 +48,7 @@ pip install discord.py
 
 ⚙️ Configuration
 Adjusting the Message Limit
+
 This bot Version is designed to keep the Discord channel clean by automatically removing older logs once a certain limit is reached. By default, it keeps the last 30 messages.
 
 To change this limit:
