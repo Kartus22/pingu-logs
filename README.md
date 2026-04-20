@@ -55,7 +55,7 @@ To change this limit:
 
 Open the logs.py file.
 
-Locate the safe_send function (around line 100).
+Locate the safe_send function (line 126 /127).
 
 Update the number 30 in the following lines to your preferred value (e.g., 50 or 100):
 
