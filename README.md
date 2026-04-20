@@ -45,6 +45,26 @@ cd pingu-logs
 pip install discord.py
 4. ConfigurationOpen logs.py and update the configuration section:TOKEN: Paste your Discord Bot Token here.CHANNEL_ID: The ID of the channel where logs should be posted and cleaned.💻 CommandsCommandRequired PermissionDescription§language engManage ServerSwitches all bot outputs to English.§language gerManage ServerSwitches all bot outputs to German.§clearManage MessagesManually deletes the last 1000 messages in the channel.📁 File Structure (Auto-Generated)logs.py: The main bot script.settings.json: Stores your chosen language.name_history.json: Stores the previous 3 names of server members.voice_sessions.json: Temporarily stores active voice sessions.last_clean.txt: Stores the last auto-cleanup timestamp.🛡 Required Discord PermissionsEnsure the bot's role has these permissions in the log channel:View ChannelSend MessagesManage Messages (Required for Auto-Clean)Read Message History📝 LicenseThis project is open-source and free to use (MIT License).
 ```
+
+⚙️ Configuration
+Adjusting the Message Limit
+This bot Version is designed to keep the Discord channel clean by automatically removing older logs once a certain limit is reached. By default, it keeps the last 30 messages.
+
+To change this limit:
+
+Open the logs.py file.
+
+Locate the safe_send function (around line 100).
+
+Update the number 30 in the following lines to your preferred value (e.g., 50 or 100):
+
+Python
+Example: Changing the limit to 50 messages
+```
+if len(messages) > 50:
+    to_delete = messages[50:]
+```
+    
 <img width="1276" height="662" alt="image" src="https://github.com/user-attachments/assets/80f9461f-f81c-4292-9aa0-1dfe480aa309" />
 
 ## 🐧 Versions
